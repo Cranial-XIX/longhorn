@@ -1,0 +1,14 @@
+__pycache__/
+*.bin
+*.pkl
+*.pt
+*.pyc
+trainlogs
+results
+*.pdf
+cuda_kernels/build/*
+cuda_kernels/*.so
+cuda_kernels/*.egg-info
+data/shakespeare_char/*.bin
+data/shakespeare_char/*.pkl
+data/openwebtext/*.bin
