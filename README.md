@@ -1,9 +1,8 @@
-<div align="center">
-## **Longhorn Deep State Space Model**
+## **Longhorn: State Space Models Are Amortized Online Learners**
+
 Bo Liu, Rui Wang, Lemeng Wu, Yihao Feng, Peter Stone, Qiang Liu
-[[Paper]]()
--------------------------------------------------------------------------------
-</div>
+
+---
 
 # Installtion
 Please run the following commands:
