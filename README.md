@@ -7,7 +7,7 @@ community, we also provide the architectures for:
 - [GLA](https://arxiv.org/pdf/2312.06635)
 - [RetNet](https://arxiv.org/abs/2307.08621)
 - [Mamba](https://arxiv.org/abs/2312.00752)
-- Longhorn
+- [Longhorn](https://arxiv.org/abs/2407.14207)
 
 The codebase is adapted from the [nanoGPT](https://github.com/karpathy/nanoGPT) project by Andrej Karpathy.
 
@@ -64,3 +64,17 @@ Then run with:
 bash run.sh MODEL
 ```
 where `MODEL` can be any of `llama, retnet, rwkv, gla, mamba, longhorn`.
+
+## 4. Citation
+If you find longhorn or this repo to be useful, please consider citing our paper:
+```
+@misc{liu2024longhornstatespacemodels,
+      title={Longhorn: State Space Models are Amortized Online Learners},
+      author={Bo Liu and Rui Wang and Lemeng Wu and Yihao Feng and Peter Stone and Qiang Liu},
+      year={2024},
+      eprint={2407.14207},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2407.14207},
+}
+```
