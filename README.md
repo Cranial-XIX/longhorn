@@ -2,12 +2,12 @@
 This repo contains the official PyTorch implementation of the Longhorn sequence modeling architecture. 
 
 <p align="center">
-  <img src="https://github.com/Cranial-XIX/longhorn/blob/master/images//fig1.png" width="80%" alt="Figure 1">
+  <img src="https://github.com/Cranial-XIX/longhorn/blob/master/images//fig1.png" width="90%" alt="Figure 1">
 </p>
 
 **Main Insight:** The recurrent form of SSMs can be viewed as solving an online learning problem. 
 
-We believe the self-attention layer in the Transformer is performing associative recall (AR). For instance, the model observes a stream of (k, v) pairs. At test time, it is provided with a key (k) and is asked to retrieve its corresponding value (v). The AR problem is like an online prediction problem, where the key is the input and the value is the label. Based on this insight, we make a parallelizable RNN, named Longhorn, whose per-token update explicitly solves this online prediction problem in closed-form.
+We believe the self-attention layer in the Transformer is performing associative recall (AR). For instance, the model observes a stream of (k, v) pairs. At test time, it is provided with a key (k) and is asked to retrieve its corresponding value (v). The AR problem is like an online prediction problem, where the key is the input and the value is the label. Based on this insight, we make a parallelizable RNN, named Longhorn, whose per-token update explicitly solves this online prediction problem in closed form.
 
 
 <p align="center">
