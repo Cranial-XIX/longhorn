@@ -1,16 +1,20 @@
 # Longhorn: State Space Models Are Amortized Online Learners
 This repo contains the official PyTorch implementation of the Longhorn sequence modeling architecture. 
 
-![pull_figure](https://github.com/longhorn/blob/master/images//fig1.png)
+<p align="center">
+  <img src="https://github.com/Cranial-XIX/longhorn/blob/master/images//fig1.png" width="80%" alt="Figure 1">
+</p>
 
 **Main Insight:** The recurrent form of SSMs can be viewed as solving an online learning problem. 
 
 We believe the self-attention layer in Transformer is performing associative recall. For instance, the model observes a stream of (k, v) pairs. At test time, it is provided with a key/input (k) and is asked to retrieve its corresponding value/label (v). Therefore, we make a parallelizable RNN, named Longhorn, that explicitly solves for this online associative recall objective in closed-form per token.
 
 
-![pull_figure](https://github.com/longhorn/blob/master/images//fig2.png)
+<p align="center">
+  <img src="https://github.com/Cranial-XIX/longhorn/blob/master/images//fig2.png" width="75%" alt="Figure 2">
+</p>
 
-**Main Observation:** Longhorn (1.3B), when trained on 100B tokens on the SlimPajama dataset, achieves 1.8x better sample efficiency than Mamba. This means that it achieves the same average validation perplexity as Mamba across 8 downstream benchmarks using about half the data.
+**Main Observation:** Longhorn (1.3B), when trained on 100B tokens on the SlimPajama dataset, achieves 1.8x better sample efficiency than Mamba. This means that it achieves the same average validation perplexity as Mamba across 8 downstream benchmarks using about half the data. In addition, Longhorn successfully extrapolates up to 16x of its training context length.
 
 ______________________________________________________________________
 
