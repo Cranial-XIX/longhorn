@@ -1,5 +1,20 @@
 # Longhorn: State Space Models Are Amortized Online Learners
-This repo contains the official PyTorch implementation of the Longhorn sequence modeling architecture. For the convenience of the research
+This repo contains the official PyTorch implementation of the Longhorn sequence modeling architecture. 
+
+![pull_figure](https://github.com/longhorn/blob/master/images//fig1.png)
+
+**Main Insight:** The recurrent form of SSMs can be viewed as solving an online learning problem. 
+
+We believe the self-attention layer in Transformer is performing associative recall. For instance, the model observes a stream of (k, v) pairs. At test time, it is provided with a key/input (k) and is asked to retrieve its corresponding value/label (v). Therefore, we make a parallelizable RNN, named Longhorn, that explicitly solves for this online associative recall objective in closed-form per token.
+
+
+![pull_figure](https://github.com/longhorn/blob/master/images//fig2.png)
+
+**Main Observation:** Longhorn (1.3B), when trained on 100B tokens on the SlimPajama dataset, achieves 1.8x better sample efficiency than Mamba. This means that it achieves the same average validation perplexity as Mamba across 8 downstream benchmarks using about half the data.
+
+______________________________________________________________________
+
+For the convenience of the research
 community, we also provide the architectures for:
 
 - [LLaMA](https://arxiv.org/abs/2302.13971) (modified from GPT-2)
@@ -10,9 +25,6 @@ community, we also provide the architectures for:
 - [Longhorn](https://arxiv.org/abs/2407.14207)
 
 The codebase is adapted from the [nanoGPT](https://github.com/karpathy/nanoGPT) project by Andrej Karpathy.
-______________________________________________________________________
-![pull_figure](https://github.com/longhorn/blob/master/images//fig1.png)
-![pull_figure](https://github.com/longhorn/blob/master/images//fig2.png)
 
 
 ## 1. Installtion
