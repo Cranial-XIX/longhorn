@@ -7,7 +7,7 @@ This repo contains the official PyTorch implementation of the Longhorn sequence 
 
 **Main Insight:** The recurrent form of SSMs can be viewed as solving an online learning problem. 
 
-We believe the self-attention layer in Transformer is performing associative recall. For instance, the model observes a stream of (k, v) pairs. At test time, it is provided with a key/input (k) and is asked to retrieve its corresponding value/label (v). Therefore, we make a parallelizable RNN, named Longhorn, that explicitly solves for this online associative recall objective in closed-form per token.
+We believe the self-attention layer in the Transformer is performing associative recall (AR). For instance, the model observes a stream of (k, v) pairs. At test time, it is provided with a key (k) and is asked to retrieve its corresponding value (v). The AR problem is like an online prediction problem, where the key is the input and the value is the label. Based on this insight, we make a parallelizable RNN, named Longhorn, whose per-token update explicitly solves this online prediction problem in closed-form.
 
 
 <p align="center">
