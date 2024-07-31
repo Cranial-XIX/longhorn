@@ -10,8 +10,10 @@ community, we also provide the architectures for:
 - [Longhorn](https://arxiv.org/abs/2407.14207)
 
 The codebase is adapted from the [nanoGPT](https://github.com/karpathy/nanoGPT) project by Andrej Karpathy.
+______________________________________________________________________
+![pull_figure](https://github.com/longhorn/blob/master/images//fig1.png)
+![pull_figure](https://github.com/longhorn/blob/master/images//fig2.png)
 
----
 
 ## 1. Installtion
 Please run the following commands to install the relevant dependencies:
