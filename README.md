@@ -1,4 +1,4 @@
-# Longhorn: State Space Models Are Amortized Online Learners
+# [Longhorn: State Space Models Are Amortized Online Learners](https://arxiv.org/pdf/2407.14207)
 This repo contains the official PyTorch implementation of the Longhorn sequence modeling architecture. 
 
 <p align="center">
