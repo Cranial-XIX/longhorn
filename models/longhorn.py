@@ -136,6 +136,86 @@ class Longhorn(nn.Module):
         )
         return y
 
+    def step(self, hidden_states, conv_state, ssm_state):
+        dtype = hidden_states.dtype
+        assert hidden_states.shape[1] == 1, "Only support decoding with 1 token at a time for now"
+        xz = self.in_proj(hidden_states.squeeze(1))  # (B 2D)
+        x, z = xz.chunk(2, dim=-1)  # (B D)
+
+        # Conv step
+        if causal_conv1d_update is None:
+            conv_state.copy_(torch.roll(conv_state, shifts=-1, dims=-1))  # Update state (B D W)
+            conv_state[:, :, -1] = x
+            x = torch.sum(conv_state * rearrange(self.conv1d.weight, "d 1 w -> d w"), dim=-1)  # (B D)
+            if self.conv1d.bias is not None:
+                x = x + self.conv1d.bias
+            x = self.act(x).to(dtype=dtype)
+        else:
+            x = causal_conv1d_update(
+                x,
+                conv_state,
+                rearrange(self.conv1d.weight, "d 1 w -> d w"),
+                self.conv1d.bias,
+                self.activation,
+            )
+
+        x_db = self.x_proj(x)  # (B dt_rank+2*d_state)
+        dt, k, q = torch.split(x_db, [self.dt_rank, self.d_state, self.d_state], dim=-1)
+
+        dt = F.linear(dt, self.dt_head.weight)  # (B d_inner)
+        dt = torch.sigmoid(dt + self.dt_head.bias.to(dtype=dt.dtype))
+        dt = dt / (1 + dt * k.square().sum(dim=-1, keepdim=True))
+
+        dA = 1 - torch.einsum("bd,bn->bdn", dt, k.pow(2))
+        dB = torch.einsum("bd,bn->bdn", dt, k)
+        ssm_state.copy_(ssm_state * dA + rearrange(x, "b d -> b d 1") * dB)
+        y = torch.einsum("bdn,bn->bd", ssm_state.to(dtype), q)
+        y = y + self.D.to(dtype) * x
+        y = y * self.act(z)  # (B D)
+        out = self.out_proj(y)
+        return out.unsqueeze(1), conv_state, ssm_state
+
+    def allocate_inference_cache(self, batch_size, max_seqlen, dtype=None, **kwargs):
+        device = self.out_proj.weight.device
+        conv_dtype = self.conv1d.weight.dtype if dtype is None else dtype
+        conv_state = torch.zeros(
+            batch_size, self.d_model * self.expand, self.d_conv, device=device, dtype=conv_dtype
+        )
+        ssm_dtype = self.dt_proj.weight.dtype if dtype is None else dtype
+        # ssm_dtype = torch.float32
+        ssm_state = torch.zeros(
+            batch_size, self.d_model * self.expand, self.d_state, device=device, dtype=ssm_dtype
+        )
+        return conv_state, ssm_state
+
+    def _get_states_from_cache(self, inference_params, batch_size, initialize_states=False):
+        assert self.layer_idx is not None
+        if self.layer_idx not in inference_params.key_value_memory_dict:
+            batch_shape = (batch_size,)
+            conv_state = torch.zeros(
+                batch_size,
+                self.d_model * self.expand,
+                self.d_conv,
+                device=self.conv1d.weight.device,
+                dtype=self.conv1d.weight.dtype,
+            )
+            ssm_state = torch.zeros(
+                batch_size,
+                self.d_model * self.expand,
+                self.d_state,
+                device=self.dt_proj.weight.device,
+                dtype=self.dt_proj.weight.dtype,
+                # dtype=torch.float32,
+            )
+            inference_params.key_value_memory_dict[self.layer_idx] = (conv_state, ssm_state)
+        else:
+            conv_state, ssm_state = inference_params.key_value_memory_dict[self.layer_idx]
+            # TODO: What if batch size changes between generation, and we reuse the same states?
+            if initialize_states:
+                conv_state.zero_()
+                ssm_state.zero_()
+        return conv_state, ssm_state
+
 
 class Block(nn.Module):
     def __init__(
