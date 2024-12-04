@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from torch import Tensor
 
-from mamba_ssm.ops.selective_scan_interface import longhorn_inner_fn
+from mamba_ssm.ops.selective_scan_interface import longhorn_inner_fn, selective_scan_online7_fn
 from mamba_ssm.utils.generation import GenerationMixin
 from mamba_ssm.utils.hf import load_config_hf, load_state_dict_hf
 
@@ -123,18 +123,62 @@ class Longhorn(nn.Module):
             l=seqlen,
         )
 
-        y = longhorn_inner_fn(
-            xz,
-            self.conv1d.weight,
-            self.conv1d.bias,
-            self.x_proj.weight,
-            self.dt_head.weight,
-            None,
-            D=self.D,
-            delta_bias=self.dt_head.bias.float(),
-            out_proj_weight=self.out_proj.weight,
-        )
-        return y
+        if self.use_fast_path and causal_conv1d_fn is not None and inference_params is None:
+            out = longhorn_inner_fn(
+                xz,
+                self.conv1d.weight,
+                self.conv1d.bias,
+                self.x_proj.weight,
+                self.dt_head.weight,
+                None,
+                D=self.D,
+                delta_bias=self.dt_head.bias.float(),
+                out_proj_weight=self.out_proj.weight,
+            )
+        else:
+            x, z = xz.chunk(2, dim=1)
+            # Compute short convolution
+            if conv_state is not None:
+                # If we just take x[:, :, -self.d_conv :], it will error if seqlen < self.d_conv
+                # Instead F.pad will pad with zeros if seqlen < self.d_conv, and truncate otherwise.
+                conv_state.copy_(F.pad(x, (self.d_conv - x.shape[-1], 0)))  # Update state (B D W)
+            if causal_conv1d_fn is None:
+                x = self.act(self.conv1d(x)[..., :seqlen])
+            else:
+                assert self.activation in ["silu", "swish"]
+                x = causal_conv1d_fn(
+                    x=x,
+                    weight=rearrange(self.conv1d.weight, "d 1 w -> d w"),
+                    bias=self.conv1d.bias,
+                    activation=self.activation,
+                )
+
+            # We're careful here about the layout, to avoid extra transposes.
+            # We want dt to have d as the slowest moving dimension
+            # and L as the fastest moving dimension, since those are what the ssm_scan kernel expects.
+            x_dbl = self.x_proj(rearrange(x, "b d l -> (b l) d"))  # (bl d)
+            dt, k, q = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
+            dt = self.dt_head.weight @ dt.t()
+            dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)
+            k = rearrange(k, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
+            q = rearrange(q, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
+            assert self.activation in ["silu", "swish"]
+
+            y = selective_scan_online7_fn(x,
+                                          q.to(x),
+                                          k.to(x),
+                                          dt.to(x),
+                                          D=self.D.float(),
+                                          t_bias=self.dt_head.bias.float(),
+                                          z=z,
+                                          return_last_state=ssm_state is not None
+            )
+            if ssm_state is not None:
+                y, last_state = y
+                ssm_state.copy_(last_state)
+            y = rearrange(y, "b d l -> b l d")
+            out = self.out_proj(y)
+        return out
 
     def step(self, hidden_states, conv_state, ssm_state):
         dtype = hidden_states.dtype
